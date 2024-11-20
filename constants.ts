@@ -9,4 +9,5 @@ export const ADMIN = Ed25519Keypair.deriveKeypair(
 );
 export const HUE_PACKAGE_ID =
   "0x934718b8127861046d6cf9a8b8c0655d6558e0193f6a108ccd0c565491df24bf";
+export const TRACK_OBJECT_TYPE = "";
 export const PUBLISHER_ENDPOINT = "";

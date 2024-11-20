@@ -1,0 +1,29 @@
+datasource db {
+  provider = "postgresql" // or your preferred database
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String   @id @default(uuid())
+  walletAddress String   @unique
+  createdAt     DateTime @default(now())
+  tracks        Track[]
+}
+
+model Track {
+  id              String   @id @default(uuid())
+  title           String
+  objectId        String   @unique // Blockchain object ID
+  blobId          String   // Walrus storage blob ID
+  mimeType        String
+  fileSize        Int
+  uploadedAt      DateTime
+  artist          User     @relation(fields: [artistId], references: [id])
+  artistId        String
+  onChainObjectId String   @unique
+  createdAt       DateTime @default(now())
+}
