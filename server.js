@@ -4,14 +4,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
+const upload_1 = require("./upload/upload");
+require("dotenv").config({ path: ".env.local" });
 const app = (0, express_1.default)();
-const PORT = 3000;
-// Handling GET / Request
-app.post("/", (req, res) => { });
-app.get("/", (req, res) => {
-    res.send("Welcome to typescript backend!");
-});
+const PORT = 11112;
+//upload:
+app.post("/upload", upload_1.handleUpload);
 // Server setup
 app.listen(PORT, () => {
-    console.log("HUE server is listening " + "on http://localhost:" + PORT);
+    console.log("HUE server is listening " + "on http://localhost:" + 11112);
 });
