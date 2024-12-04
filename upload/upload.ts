@@ -5,7 +5,6 @@ import {
   ADMIN,
   client,
   HUE_PACKAGE_ID,
-  PUBLISHER_ENDPOINT,
 } from "../constants";
 import { walrusPublish } from "./walrusPublish";
 import { Prisma, PrismaClient } from "@prisma/client";
@@ -23,11 +22,6 @@ interface UploadPayload {
     mimeType: string;
     uploadedAt: string;
   };
-}
-interface TrackCreatedEvent {
-  track_id: string;
-  title: string;
-  artist: string;
 }
 
 // Type guard function to validate the payload
@@ -69,9 +63,10 @@ export const handleUpload: RequestHandler = async (
   req: Request,
   res: Response
 ):Promise<void> => {
-  console.log("RECEIVED UPLOAD\n", req);
+  console.log("RECEIVED UPLOAD\n",);
   try {
     if (!isValidUploadPayload(req.body)) {
+      console.log("fcked up");
       res.status(400).json({
         success: false,
         message: "Invalid request payload",
@@ -80,7 +75,9 @@ export const handleUpload: RequestHandler = async (
     }
 
     const payload = req.body;
+    console.log("Base64 string length:", payload.audio.length);
     const fileBuffer = Buffer.from(payload.audio, "base64");
+    console.log("Decoded buffer size:", fileBuffer.length); 
     console.log("starting walrus");
     // WALRUS PUBLISH
     let arr = await walrusPublish(fileBuffer, payload.metadata.mimeType);
@@ -89,7 +86,7 @@ export const handleUpload: RequestHandler = async (
     console.log("walrus blobId: ", blobId);
     console.log("walrus objectId: ", objectId);
 
-    //MOVE CALL TO TRACK SMART CONTRACT
+    //------------ MOVE CALL TO TRACK SMART CONTRACT ---------------
     const tx = new Transaction();
     tx.moveCall({
       package: HUE_PACKAGE_ID,
@@ -98,30 +95,31 @@ export const handleUpload: RequestHandler = async (
       arguments: [
         tx.pure.string(payload.title),
         tx.pure.id(objectId),
+        tx.pure.string(new Date().toISOString()),
         tx.pure.string("COVER URL YAY"),
         tx.pure.u64(10_000_000), // 0.01 SUI per stream
       ],
     });
     tx.setSender(ADMIN.toSuiAddress());
-    const bytes = await tx.build();
+    const bytes = await tx.build({client: client});
     const serializedSignature = (await ADMIN.signTransaction(bytes)).signature;
-    let response = await client.executeTransactionBlock({
+    let txResponse = await client.executeTransactionBlock({
       transactionBlock: bytes,
       signature: serializedSignature,
     });
-    //get the objectId of the track
-    let createTrackEvent = response.events?.find(
-      event => event.type.includes('::track::TrackCreated')
-    );
-    if (!createTrackEvent || !createTrackEvent.parsedJson) {
+    let response = await client.waitForTransaction({
+      digest: txResponse.digest,
+      options: {
+        showEffects: true
+      }
+    })
+    console.log(response);
+    //get objectId of created track
+    if(!response.effects || !response || !response.effects.created) {
       throw new Error('Track creation event not found');
     }
-    let eventData = createTrackEvent.parsedJson as TrackCreatedEvent;
-    if (!eventData?.track_id) {
-      throw new Error('Track ID not found in event data');
-    }
-    let trackId = eventData.track_id;
-    console.log("Sui track objectId: ", trackId);
+    let trackObjectRef = response.effects.created[0];
+    let trackId = trackObjectRef.reference.objectId;
 
     // Cache user data if not exists
     const user = await prisma.user.upsert({

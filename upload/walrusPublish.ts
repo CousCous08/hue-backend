@@ -1,4 +1,5 @@
 import { buffer } from "stream/consumers";
+import { PUBLISHER_ENDPOINT } from "../constants";
 type WalrusResponse = {
   newlyCreated: {
     blobObject: {
@@ -21,15 +22,15 @@ type WalrusResponse = {
 };
 
 const EPOCHS = 5;
-const WALRUS_PUBLISHER = "https://publisher.walrus-testnet.walrus.space";
 
 export async function walrusPublish(
   file: Buffer,
   mimeType: string
 ): Promise<string[]> {
+  console.log("File size (MB):", file.length / (1024 * 1024));
   //wait for publisher response
-  let response = await fetch(`${WALRUS_PUBLISHER}/v1/store?epochs=${EPOCHS}`, {
-    method: "POST",
+  let response = await fetch(`${PUBLISHER_ENDPOINT}/v1/store?epochs=${EPOCHS}`, {
+    method: "PUT",
     headers: {
       "Content-Type": mimeType,
     },

@@ -10,14 +10,15 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.walrusPublish = walrusPublish;
+const constants_1 = require("../constants");
 const EPOCHS = 5;
-const WALRUS_PUBLISHER = "https://publisher.walrus-testnet.walrus.space";
 function walrusPublish(file, mimeType) {
     return __awaiter(this, void 0, void 0, function* () {
         var _a, _b, _c, _d;
+        console.log("File size (MB):", file.length / (1024 * 1024));
         //wait for publisher response
-        let response = yield fetch(`${WALRUS_PUBLISHER}/v1/store?epochs=${EPOCHS}`, {
-            method: "POST",
+        let response = yield fetch(`${constants_1.PUBLISHER_ENDPOINT}/v1/store?epochs=${EPOCHS}`, {
+            method: "PUT",
             headers: {
                 "Content-Type": mimeType,
             },

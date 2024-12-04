@@ -7,6 +7,7 @@ const express_1 = __importDefault(require("express"));
 const upload_1 = require("./upload/upload");
 require("dotenv").config({ path: ".env.local" });
 const app = (0, express_1.default)();
+app.use(express_1.default.json({ limit: '50mb' }));
 const PORT = 11112;
 //upload:
 app.post("/upload", upload_1.handleUpload);

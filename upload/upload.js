@@ -42,17 +42,20 @@ function isValidUploadPayload(payload) {
     return true;
 }
 const handleUpload = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
-    console.log("RECEIVED UPLOAD");
+    console.log("RECEIVED UPLOAD\n");
     try {
         if (!isValidUploadPayload(req.body)) {
+            console.log("fcked up");
             res.status(400).json({
                 success: false,
                 message: "Invalid request payload",
             });
+            return;
         }
         const payload = req.body;
+        console.log("Base64 string length:", payload.audio.length);
         const fileBuffer = Buffer.from(payload.audio, "base64");
+        console.log("Decoded buffer size:", fileBuffer.length);
         console.log("starting walrus");
         // WALRUS PUBLISH
         let arr = yield (0, walrusPublish_1.walrusPublish)(fileBuffer, payload.metadata.mimeType);
@@ -60,7 +63,7 @@ const handleUpload = (req, res) => __awaiter(void 0, void 0, void 0, function* (
         let blobId = arr[1];
         console.log("walrus blobId: ", blobId);
         console.log("walrus objectId: ", objectId);
-        //MOVE CALL TO TRACK SMART CONTRACT
+        //------------ MOVE CALL TO TRACK SMART CONTRACT ---------------
         const tx = new transactions_1.Transaction();
         tx.moveCall({
             package: constants_1.HUE_PACKAGE_ID,
@@ -69,28 +72,31 @@ const handleUpload = (req, res) => __awaiter(void 0, void 0, void 0, function* (
             arguments: [
                 tx.pure.string(payload.title),
                 tx.pure.id(objectId),
+                tx.pure.string(new Date().toISOString()),
                 tx.pure.string("COVER URL YAY"),
                 tx.pure.u64(10000000), // 0.01 SUI per stream
             ],
         });
         tx.setSender(constants_1.ADMIN.toSuiAddress());
-        const bytes = yield tx.build();
+        const bytes = yield tx.build({ client: constants_1.client });
         const serializedSignature = (yield constants_1.ADMIN.signTransaction(bytes)).signature;
-        let response = yield constants_1.client.executeTransactionBlock({
+        let txResponse = yield constants_1.client.executeTransactionBlock({
             transactionBlock: bytes,
             signature: serializedSignature,
         });
-        //get the objectId of the track
-        let createTrackEvent = (_a = response.events) === null || _a === void 0 ? void 0 : _a.find(event => event.type.includes('::track::TrackCreated'));
-        if (!createTrackEvent || !createTrackEvent.parsedJson) {
+        let response = yield constants_1.client.waitForTransaction({
+            digest: txResponse.digest,
+            options: {
+                showEffects: true
+            }
+        });
+        console.log(response);
+        //get objectId of created track
+        if (!response.effects || !response || !response.effects.created) {
             throw new Error('Track creation event not found');
         }
-        let eventData = createTrackEvent.parsedJson;
-        if (!(eventData === null || eventData === void 0 ? void 0 : eventData.track_id)) {
-            throw new Error('Track ID not found in event data');
-        }
-        let trackId = eventData.track_id;
-        console.log("Sui track objectId: ", trackId);
+        let trackObjectRef = response.effects.created[0];
+        let trackId = trackObjectRef.reference.objectId;
         // Cache user data if not exists
         const user = yield prisma.user.upsert({
             where: {
@@ -120,6 +126,7 @@ const handleUpload = (req, res) => __awaiter(void 0, void 0, void 0, function* (
             message: "File uploaded success",
             trackId: trackId,
         });
+        return;
     }
     catch (error) {
         console.error("Error in handleUpload:", error);
@@ -128,6 +135,7 @@ const handleUpload = (req, res) => __awaiter(void 0, void 0, void 0, function* (
             message: "Error uploading file",
             error: error instanceof Error ? error.message : "Unknown error",
         });
+        return;
     }
 });
 exports.handleUpload = handleUpload;
