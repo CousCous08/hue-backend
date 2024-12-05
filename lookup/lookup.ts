@@ -8,6 +8,7 @@ export const handleLookup: RequestHandler = async (
   res: Response
 ):Promise<void> => {
 try {
+  console.log("LOOKUP REQUEST");
     const tracks = await prisma.track.findMany({
       include: {
         artist: true
@@ -20,5 +21,5 @@ try {
       success: false, 
       error: 'Failed to fetch tracks' 
     });
-  }
+    }
 }
