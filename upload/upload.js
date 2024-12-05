@@ -25,7 +25,8 @@ function isValidUploadPayload(payload) {
     // Check required fields and their types
     if (typeof p.audio !== "string" ||
         typeof p.title !== "string" ||
-        typeof p.artist_address !== "string") {
+        typeof p.artist_address !== "string" ||
+        typeof p.price !== "number") {
         return false;
     }
     // Check metadata object and its fields
@@ -72,9 +73,9 @@ const handleUpload = (req, res) => __awaiter(void 0, void 0, void 0, function* (
             arguments: [
                 tx.pure.string(payload.title),
                 tx.pure.id(objectId),
-                tx.pure.string(new Date().toISOString()),
                 tx.pure.string("COVER URL YAY"),
-                tx.pure.u64(10000000), // 0.01 SUI per stream
+                tx.pure.string(new Date().toISOString()),
+                tx.pure.u64(payload.price * 1000000000),
             ],
         });
         tx.setSender(constants_1.ADMIN.toSuiAddress());
@@ -119,6 +120,7 @@ const handleUpload = (req, res) => __awaiter(void 0, void 0, void 0, function* (
                 uploadedAt: new Date(Date.now()),
                 artistId: user.id,
                 onChainObjectId: objectId,
+                costPerStream: payload.price
             },
         });
         res.status(200).json({

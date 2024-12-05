@@ -13,8 +13,9 @@ import { Prisma, PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 interface UploadPayload {
-  audio: string;
+  audio: string; // base64 encoded audio
   title: string;
+  price: number;
   artist_address: string;
   metadata: {
     filename: string;
@@ -36,7 +37,8 @@ function isValidUploadPayload(payload: unknown): payload is UploadPayload {
   if (
     typeof p.audio !== "string" ||
     typeof p.title !== "string" ||
-    typeof p.artist_address !== "string"
+    typeof p.artist_address !== "string" ||
+    typeof p.price !== "number"
   ) {
     return false;
   }
@@ -95,9 +97,9 @@ export const handleUpload: RequestHandler = async (
       arguments: [
         tx.pure.string(payload.title),
         tx.pure.id(objectId),
-        tx.pure.string(new Date().toISOString()),
         tx.pure.string("COVER URL YAY"),
-        tx.pure.u64(10_000_000), // 0.01 SUI per stream
+        tx.pure.string(new Date().toISOString()),
+        tx.pure.u64(payload.price * 1000000000),
       ],
     });
     tx.setSender(ADMIN.toSuiAddress());
@@ -144,6 +146,7 @@ export const handleUpload: RequestHandler = async (
         uploadedAt: new Date(Date.now()),
         artistId: user.id,
         onChainObjectId: objectId,
+        costPerStream: payload.price
       },
     });
 

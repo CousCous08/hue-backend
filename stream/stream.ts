@@ -1,6 +1,7 @@
 import { Request, Response, RequestHandler } from "express";
 import { AGGREGATOR_ENDPOINT } from "../constants";
-
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
 
 // Express backend handler
 export const handleStream: RequestHandler = async (
@@ -8,8 +9,14 @@ export const handleStream: RequestHandler = async (
     res: Response
   ): Promise<void> => {
     try {
-      const { trackId, blobId } = req.query;
-      
+      const { trackId } = req.query;
+      console.log("STREAMING TRACK: ", trackId);
+      const id = trackId as string;
+      const track = await prisma.track.findUnique({
+        where: { objectId: id }
+       });
+      let blobId = track?.blobId;
+      console.log("blobId: ", blobId);
       const response = await fetch(`${AGGREGATOR_ENDPOINT}/v1/${blobId}`);
       
       if (!response.ok) {

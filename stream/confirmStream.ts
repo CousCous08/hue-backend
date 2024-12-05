@@ -10,10 +10,14 @@ export const handleConfirmStream: RequestHandler = async (
  res: Response
 ):Promise<void> => {
  try {
-   const { trackId } = req.body;
-   console.log("CONFIRM-STREAM REQUEST FOR TRACK: ", trackId);
+  const id = req.body.trackId;
+  const trackId = id as string;
+  console.log("CONFIRM-STREAM REQUEST FOR TRACK: ", trackId);
+  const track = await prisma.track.findUnique({
+    where: { objectId: trackId }
+   });
 
-   if (!trackId) {
+   if (!trackId || !track) {
      res.status(400).json({
        success: false,
        error: 'trackId is required'
@@ -23,13 +27,15 @@ export const handleConfirmStream: RequestHandler = async (
 
    console.log("Confirming stream for trackId:", trackId);
 
+   const price = track.costPerStream;
    //----SUI MOVE CALL -----
    /**
     * arg0: &mut Track, 
     * arg1: 0x2::coin::Coin<0x2::sui::SUI>
     */
    const tx = new Transaction();
-   let payment = tx.splitCoins(tx.gas, [10_000_000]);
+   console.log("Price: ", price, " SUI");
+   let payment = tx.splitCoins(tx.gas, [price * 1000000000]);
     tx.moveCall({
       package: HUE_PACKAGE_ID,
       module: "track",

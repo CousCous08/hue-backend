@@ -26,4 +26,5 @@ model Track {
   artistId        String
   onChainObjectId String   @unique
   createdAt       DateTime @default(now())
+  costPerStream   Float    @default(0)
 }
